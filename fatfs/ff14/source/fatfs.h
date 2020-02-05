@@ -84,16 +84,16 @@ typedef struct DISC_INTERFACE_STRUCT DISC_INTERFACE;
 #define CACHE_DEFAULT_PAGE_SIZE         8    /* The default number of sectors per cache page */
 
 /* NTFS mount flags */
-#define NTFS_DEFAULT                    0x00000000 /* Standard mount, expects a clean, non-hibernated volume */
-#define NTFS_SHOW_HIDDEN_FILES          0x00000001 /* Display hidden files when enumerating directories */
-#define NTFS_SHOW_SYSTEM_FILES          0x00000002 /* Display system files when enumerating directories */
-#define NTFS_UPDATE_ACCESS_TIMES        0x00000004 /* Update file and directory access times */
-#define NTFS_RECOVER                    0x00000008 /* Reset $LogFile if dirty (i.e. from unclean disconnect) */
-#define NTFS_IGNORE_HIBERFILE           0x00000010 /* Mount even if volume is hibernated */
-#define NTFS_READ_ONLY                  0x00000020 /* Mount in read only mode */
-#define NTFS_IGNORE_CASE                0x00000040 /* Ignore case sensitivity. Everything must be and  will be provided in lowercase. */
-#define NTFS_SU                         NTFS_SHOW_HIDDEN_FILES | NTFS_SHOW_SYSTEM_FILES
-#define NTFS_FORCE                      NTFS_RECOVER | NTFS_IGNORE_HIBERFILE
+#define FATFS_DEFAULT                    0x00000000 /* Standard mount, expects a clean, non-hibernated volume */
+#define FATFS_SHOW_HIDDEN_FILES          0x00000001 /* Display hidden files when enumerating directories */
+#define FATFS_SHOW_SYSTEM_FILES          0x00000002 /* Display system files when enumerating directories */
+#define FATFS_UPDATE_ACCESS_TIMES        0x00000004 /* Update file and directory access times */
+#define FATFS_RECOVER                    0x00000008 /* Reset $LogFile if dirty (i.e. from unclean disconnect) */
+#define FATFS_IGNORE_HIBERFILE           0x00000010 /* Mount even if volume is hibernated */
+#define FATFS_READ_ONLY                  0x00000020 /* Mount in read only mode */
+#define FATFS_IGNORE_CASE                0x00000040 /* Ignore case sensitivity. Everything must be and  will be provided in lowercase. */
+#define FATFS_SU                         NTFS_SHOW_HIDDEN_FILES | NTFS_SHOW_SYSTEM_FILES
+#define FATFS_FORCE                      NTFS_RECOVER | NTFS_IGNORE_HIBERFILE
 
 /**
  * ntfs_md - NTFS mount descriptor
@@ -113,7 +113,7 @@ typedef struct _ntfs_md {
  * @return The number of entries in PARTITIONS or -1 if an error occurred (see errno)
  * @note The caller is responsible for freeing PARTITIONS when finished with it
  */
-extern int ntfsFindPartitions (const DISC_INTERFACE *interface, sec_t **partitions);
+extern int fatfsFindPartitions (const DISC_INTERFACE *interface, sec_t **partitions);
 
 /**
  * Mount all NTFS partitions on all inserted block devices.
@@ -125,7 +125,7 @@ extern int ntfsFindPartitions (const DISC_INTERFACE *interface, sec_t **partitio
  * @note The caller is responsible for freeing MOUNTS when finished with it
  * @note All device caches are setup using default values (see above)
  */
-extern int ntfsMountAll (ntfs_md **mounts, u32 flags);
+extern int fatfsMountAll (ntfs_md **mounts, u32 flags);
 
 /**
  * Mount all NTFS partitions on a block devices.
@@ -138,7 +138,7 @@ extern int ntfsMountAll (ntfs_md **mounts, u32 flags);
  * @note The caller is responsible for freeing MOUNTS when finished with it
  * @note The device cache is setup using default values (see above)
  */
-extern int ntfsMountDevice (const DISC_INTERFACE* interface, ntfs_md **mounts, u32 flags);
+extern int fatfsMountDevice (const DISC_INTERFACE* interface, ntfs_md **mounts, u32 flags);
 
 /**
  * Mount a NTFS partition from a specific sector on a block device.
@@ -153,7 +153,7 @@ extern int ntfsMountDevice (const DISC_INTERFACE* interface, ntfs_md **mounts, u
  * @return True if mount was successful, false if no partition was found or an error occurred (see errno)
  * @note ntfsFindPartitions should be used first to locate the partitions start sector
  */
-extern bool ntfsMount (const char *name, const DISC_INTERFACE *interface, sec_t startSector, u32 cachePageCount, u32 cachePageSize, u32 flags);
+extern bool fatfsMount (const char *name, const DISC_INTERFACE *interface, sec_t startSector, u32 cachePageCount, u32 cachePageSize, u32 flags);
 
 /**
  * Unmount a NTFS partition.
@@ -161,7 +161,7 @@ extern bool ntfsMount (const char *name, const DISC_INTERFACE *interface, sec_t 
  * @param NAME The name of mount used in ntfsMountSimple() and ntfsMount()
  * @param FORCE If true unmount even if the device is busy (may lead to data lose)
  */
-extern void ntfsUnmount (const char *name, bool force);
+extern void fatfsUnmount (const char *name, bool force);
 
 /**
  * Get the volume name of a mounted NTFS partition.
@@ -170,7 +170,7 @@ extern void ntfsUnmount (const char *name, bool force);
  *
  * @return The volumes name if successful or NULL if an error occurred (see errno)
  */
-extern const char *ntfsGetVolumeName (const char *name);
+extern const char *fatfsGetVolumeName (const char *name);
 
 /**
  * Set the volume name of a mounted NTFS partition.
@@ -181,40 +181,40 @@ extern const char *ntfsGetVolumeName (const char *name);
  * @return True if mount was successful, false if an error occurred (see errno)
  * @note The mount must be write-enabled else this will fail
  */
-extern bool ntfsSetVolumeName (const char *name, const char *volumeName);
+extern bool fatfsSetVolumeName (const char *name, const char *volumeName);
 
 // file operations
 
-int ps3ntfs_open(const char *path, int flags, int mode);
-int ps3ntfs_close(int fd);
-int ps3ntfs_write(int fd, const char *ptr, size_t len);
-int ps3ntfs_read(int fd, char *ptr, size_t len);
-off_t ps3ntfs_seek(int fd, off_t pos, int dir);
-s64 ps3ntfs_seek64(int fd, s64 pos, int dir);
-int ps3ntfs_fstat(int fd, struct stat *st);
-int ps3ntfs_stat(const char *file, struct stat *st);
-int ps3ntfs_link(const char *existing, const char  *newLink);
-int ps3ntfs_unlink(const char *name);
+int ps3fatfs_open(const char *path, int flags, int mode);
+int ps3fatfs_close(int fd);
+int ps3fatfs_write(int fd, const char *ptr, size_t len);
+int ps3fatfs_read(int fd, char *ptr, size_t len);
+off_t ps3fatfs_seek(int fd, off_t pos, int dir);
+s64 ps3fatfs_seek64(int fd, s64 pos, int dir);
+int ps3fatfs_fstat(int fd, struct stat *st);
+int ps3fatfs_stat(const char *file, struct stat *st);
+int ps3fatfs_link(const char *existing, const char  *newLink);
+int ps3fatfs_unlink(const char *name);
 
-int ps3ntfs_chdir(const char *name);
-int ps3ntfs_rename(const char *oldName, const char *newName);
-int ps3ntfs_mkdir(const char *path, int mode);
-int ps3ntfs_file_to_sectors(const char *path, uint32_t *sec_out, uint32_t *size_out, int max, int phys);
-int ps3ntfs_get_fd_from_FILE(FILE *fp);
+int ps3fatfs_chdir(const char *name);
+int ps3fatfs_rename(const char *oldName, const char *newName);
+int ps3fatfs_mkdir(const char *path, int mode);
+int ps3fatfs_file_to_sectors(const char *path, uint32_t *sec_out, uint32_t *size_out, int max, int phys);
+int ps3fatfs_get_fd_from_FILE(FILE *fp);
 
 typedef struct {
     int device;
     void *dirStruct;
 } DIR_ITER;
 
-DIR_ITER*  ps3ntfs_diropen(const char *path);
-int ps3ntfs_dirreset(DIR_ITER *dirState);
-int ps3ntfs_dirnext(DIR_ITER *dirState, char *filename, struct stat *filestat);
-int ps3ntfs_dirclose(DIR_ITER *dirState);
+DIR_ITER*  ps3fatfs_diropen(const char *path);
+int ps3fatfs_dirreset(DIR_ITER *dirState);
+int ps3fatfs_dirnext(DIR_ITER *dirState, char *filename, struct stat *filestat);
+int ps3fatfs_dirclose(DIR_ITER *dirState);
 
 // map file functions to libc open, fopen, ...
-void NTFS_init_system_io(void);
-void NTFS_deinit_system_io(void);
+void FATFS_init_system_io(void);
+void FATFS_deinit_system_io(void);
 
 
 #ifndef _SYS_STATVFS_H
@@ -242,23 +242,22 @@ struct statvfs {
 
 #endif
 
-int ps3ntfs_statvfs(const char *path, struct statvfs *buf);
-int ps3ntfs_ftruncate(int fd, off_t len);
-int ps3ntfs_fsync(int fd);
-int ps3ntfs_errno(void);
+int ps3fatfs_statvfs(const char *path, struct statvfs *buf);
+int ps3fatfs_ftruncate(int fd, off_t len);
+int ps3fatfs_fsync(int fd);
+int ps3fatfs_errno(void);
 
-bool PS3_NTFS_IsInserted(int fd); // fd from  0 to 7 (usb000... usb007)
-bool PS3_NTFS_Shutdown(int fd);   // fd from  0 to 7 (usb000... usb007)
+bool PS3_FATFS_IsInserted(int fd); // fd from  0 to 7 (usb000... usb007)
+bool PS3_FATFS_Shutdown(int fd);   // fd from  0 to 7 (usb000... usb007)
 
-extern const DISC_INTERFACE __io_ntfs_usb000;
-extern const DISC_INTERFACE __io_ntfs_usb001;
-extern const DISC_INTERFACE __io_ntfs_usb002;
-extern const DISC_INTERFACE __io_ntfs_usb003;
-extern const DISC_INTERFACE __io_ntfs_usb004;
-extern const DISC_INTERFACE __io_ntfs_usb005;
-extern const DISC_INTERFACE __io_ntfs_usb006;
-extern const DISC_INTERFACE __io_ntfs_usb007;
-
+extern const DISC_INTERFACE __io_fatfs_usb000;
+extern const DISC_INTERFACE __io_fatfs_usb001;
+extern const DISC_INTERFACE __io_fatfs_usb002;
+extern const DISC_INTERFACE __io_fatfs_usb003;
+extern const DISC_INTERFACE __io_fatfs_usb004;
+extern const DISC_INTERFACE __io_fatfs_usb005;
+extern const DISC_INTERFACE __io_fatfs_usb006;
+extern const DISC_INTERFACE __io_fatfs_usb007;
 
 #ifdef __cplusplus
 }
