@@ -51,7 +51,7 @@ static DSTATUS ps3fatfs_init(int fd)
 	if(rr != 0)  
 	{
 		dev_sectsize[fd] = 512; 
-		return STA_NOINIT;
+		//return STA_NOINIT;
 	}
 
 	dev_sectsize[fd]  = disc_info.sector_size;
@@ -108,7 +108,8 @@ DRESULT disk_read (
 	int fd = pdrv;
     int flag = ((int) (s64) buff) & 31;
 
-    if(dev_fd[fd] < 0 || !buff) return RES_PARERR;
+    if(dev_fd[fd] < 0 || !buff) 
+		return RES_PARERR;
 
     void *my_buff;
     

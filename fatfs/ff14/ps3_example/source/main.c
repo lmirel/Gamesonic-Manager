@@ -144,13 +144,18 @@ int app_init (int dat)
     FDIR fdir;
     int i;
     char lbuf[10];
+    FATFS *fs;     /* Ponter to the filesystem object */
+    fs = malloc(sizeof (FATFS));           /* Get work area for the volume */
     for (i = 0; i < 8; i++)
     {
         snprintf(lbuf, 10, "%d:/", i);
+        f_mount(fs, lbuf, 0);                    /* Mount the default drive */
         fddr[i] = f_opendir (&fdir, lbuf);
         if (fddr[i] == FR_OK)
             f_closedir (&fdir);
+        f_mount(0, lbuf, 0);                    /* Mount the default drive */
     }
+    free(fs);
     //
     return 1;
 }
