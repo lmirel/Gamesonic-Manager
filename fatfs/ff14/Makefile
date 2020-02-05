@@ -30,7 +30,7 @@ export DEPSDIR		:=	$(DEPS)/$(PLATFORM)
 endif
 #---------------------------------------------------------------------------------
 
-TARGET		:=	libfat
+TARGET		:=	libfatfs
 BUILD		:=	build
 SOURCE		:=	source
 INCLUDE		:=	include

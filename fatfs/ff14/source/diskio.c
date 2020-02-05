@@ -35,40 +35,37 @@ static u64 ff_ps3id[8] = {
 	};
 static int dev_fd[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 static int dev_sectsize[8] = {512, 512, 512, 512, 512, 512, 512, 512};
-
-#define MAX_LEVELS 32
-static int my_files[MAX_LEVELS];
-static sys_lwmutex_t ps3fatfs_lock;
-
-static DSTATUS ps3fatfs_init()
+# if 0
+DWORD get_fattime (void)
+{
+	return ((DWORD)(FF_NORTC_YEAR - 1980) << 25 | (DWORD)FF_NORTC_MON << 21 | (DWORD)FF_NORTC_MDAY << 16);
+}
+#endif
+static DSTATUS ps3fatfs_init(int fd)
 {
     int rr;
 	static device_info_t disc_info;
-	int fd = 0;
-	for (fd = 0; fd < 8; fd++)
+	disc_info.unknown03 = 0x12345678; // hack for Iris Manager Disc Less
+	disc_info.sector_size = 0;
+	rr=sys_storage_get_device_info(ff_ps3id[fd], &disc_info);
+	if(rr != 0)  
 	{
-		disc_info.unknown03 = 0x12345678; // hack for Iris Manager Disc Less
-		disc_info.sector_size = 0;
-		rr=sys_storage_get_device_info(ff_ps3id[fd], &disc_info);
-		if(rr != 0)  
-		{
-			dev_sectsize[fd] = 512; 
-			continue;//return STA_NOINIT;
-		}
-
-		dev_sectsize[fd]  = disc_info.sector_size;
-
-		if(dev_fd[fd] >= 0) 
-			continue;//return RES_OK;
-
-		if(sys_storage_open(ff_ps3id[fd], &dev_fd[fd])<0) 
-		{
-			dev_fd[fd] = -1; 
-			continue;//return STA_NOINIT;
-		}
-
-		dev_sectsize[fd] = disc_info.sector_size;
+		dev_sectsize[fd] = 512; 
+		return STA_NOINIT;
 	}
+
+	dev_sectsize[fd]  = disc_info.sector_size;
+
+	if(dev_fd[fd] >= 0) 
+		return RES_OK;
+
+	if(sys_storage_open(ff_ps3id[fd], &dev_fd[fd])<0) 
+	{
+		dev_fd[fd] = -1; 
+		return STA_NOINIT;
+	}
+
+	dev_sectsize[fd] = disc_info.sector_size;
 	return RES_OK;
 }
 
@@ -93,7 +90,7 @@ DSTATUS disk_initialize (
 	BYTE pdrv				/* Physical drive nmuber to identify the drive */
 )
 {
-	return ps3fatfs_init ();
+	return ps3fatfs_init (pdrv);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -123,25 +120,19 @@ DRESULT disk_read (
     if(!my_buff) 
 		return RES_ERROR;
 
-    int n;
     int r;
     uint32_t sectors_read;
 
 	res = RES_OK;
-    for(n = 0; n < 8; n++) {
+	r = sys_storage_read(dev_fd[fd], (uint32_t) sector, (uint32_t) count, 
+		(uint8_t *) my_buff, &sectors_read); 
 
-        r = sys_storage_read(dev_fd[fd], (uint32_t) sector, (uint32_t) count, 
-            (uint8_t *) my_buff, &sectors_read); 
+	if(r == 0x80010002) 
+	{
+		return RES_NOTRDY;//PS3_NTFS_Shutdown(fd);
+	}
 
-        if(r == 0x80010002) 
-		{
-			return RES_NOTRDY;//PS3_NTFS_Shutdown(fd);
-		}
-
-        if(r == 0) 
-			break;
-        usleep(62500);
-    }
+	usleep(62500);
 
     if(flag) 
 	{
