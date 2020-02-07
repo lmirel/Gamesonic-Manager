@@ -14,10 +14,14 @@ TITLE		:=	FATFSlib Test
 APPID		:=	FATFS0001
 CONTENTID	:=	UP0001-$(APPID)_00-0000000000000000
 
+SCETOOL_FLAGS	?=	--self-app-version=0001000000000000  --sce-type=SELF --compress-data=TRUE --self-add-shdrs=TRUE --skip-sections=FALSE --key-revision=1 \
+					--self-auth-id=1010000001000003 --self-vendor-id=01000002 --self-fw-version=0003004000000000
+
 include $(PSL1GHT)/ppu_rules
 
 # aditional scetool flags (--self-ctrl-flags, --self-cap-flags...)
-SCETOOL_FLAGS	+=	
+SCETOOL_FLAGS	+=	--self-ctrl-flags 4000000000000000000000000000000000000000000000000000000000000002
+SCETOOL_FLAGS	+=	--self-cap-flags 00000000000000000000000000000000000000000000007B0000000100000000
 
 #---------------------------------------------------------------------------------
 # TARGET is the name of the output
@@ -36,7 +40,7 @@ INCLUDES	:=	include ../include
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS		:=	../../libfatfs.a -lfont -ltiny3d -lsimdmath -lgcm_sys -lio -lsysutil -lrt -llv2 -lsysmodule -lm
+LIBS		:=	../../libfatfs.a -lsysfs -lfont -ltiny3d -lsimdmath -lgcm_sys -lio -lsysutil -lrt -llv2 -lsysmodule -lm
 
 
 #---------------------------------------------------------------------------------

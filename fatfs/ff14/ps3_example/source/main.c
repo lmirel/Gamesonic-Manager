@@ -25,7 +25,191 @@
 extern unsigned char msx[];
 
 #include "ff.h"
+
+#define SDTEST
+#ifdef SDTEST
+#include "types.h"
+
+typedef struct {
+    int device;
+    void *dirStruct;
+} DIR_ITER;
+
+#include "iosupport.h"
+#include "storage.h"
+#include <malloc.h>
+#include <sys/file.h>
+#include <lv2/mutex.h> 
+#include <sys/errno.h>
+
+#include <sys/file.h>
+#include <ppu-lv2.h>
+#include <sys/stat.h>
+#include <lv2/sysfs.h>
+
+#include <sysutil/disc.h>
+
+#include <sysmodule/sysmodule.h>
+
 int fddr[8] = {0};
+char fdld[8][256];
+static u64 ff_ps3id[8] = {
+	0x010300000000000AULL, 0x010300000000000BULL, 0x010300000000000CULL, 0x010300000000000DULL,
+	0x010300000000000EULL, 0x010300000000000FULL, 0x010300000000001FULL, 0x0103000000000020ULL 
+	};
+static int dev_fd[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
+#if 0
+#include "storage.h"
+int sdopen (int fd)
+{
+	static device_info_t disc_info;
+	disc_info.unknown03 = 0x12345678; // hack for Iris Manager Disc Less
+	disc_info.sector_size = 0;
+	//int ret = sys_storage_get_device_info(ff_ps3id[fd], &disc_info);
+    int ret = sys_storage_open(ff_ps3id[fd], &dev_fd[fd]);
+    if (0 == ret)
+        sys_storage_close(dev_fd[fd]);
+    return ret;
+}
+#else
+FRESULT scan_files2 (
+    char* path        /* Start node to be scanned (***also used as work area***) */
+)
+{
+    FRESULT res;
+    FDIR dir;
+    UINT i = 0;
+    static FILINFO fno;
+
+
+    res = f_opendir(&dir, path);                       /* Open the directory */
+    if (res == FR_OK) 
+    {
+        for (;;) 
+        {
+            FRESULT res1 = f_readdir(&dir, &fno);                   /* Read a directory item */
+            if (res1 != FR_OK || fno.fname[0] == 0) 
+                break;  /* Break on error or end of dir */
+            i++;
+            if (i > 7)
+                break;
+            if (fno.fattrib & AM_DIR) 
+            {                    /* It is a directory */
+                snprintf (fdld[i], 255, "/%s", fno.fname);
+                //sprintf(&path[i], "/%s", fno.fname);
+                //res = scan_files(path);                    /* Enter the directory */
+                //if (res != FR_OK) break;
+                //path[i] = 0;
+            } 
+            else 
+            {                                       /* It is a file. */
+                snprintf (fdld[i], 255, "%s", fno.fname);
+                //printf("%s/%s\n", path, fno.fname);
+            }
+        }
+        f_closedir(&dir);
+    }
+    return res;
+}
+
+FRESULT scan_files (
+    char* path        /* Start node to be scanned (***also used as work area***) */
+)
+{
+    FRESULT res;
+    FDIR dir;
+    UINT i = 0;
+    static FILINFO fno;
+
+
+    res = f_opendir(&dir, path);                       /* Open the directory */
+    if (res == FR_OK) 
+    {
+        FRESULT res1 = f_readdir(&dir, &fno);                   /* Read a directory item */
+        if (res1 != FR_OK || fno.fname[0] == 0) 
+        {
+            //res1 = disk_status(dir.obj.fs->pdrv);
+            snprintf (fdld[i], 255, "%x !f_readdir %s drive %d ssize %d", res1, path, dir.obj.fs->pdrv, 0/*dir.obj.fs->ssize*/);
+            //
+            f_closedir(&dir);
+            return res;  /* Break on error or end of dir */
+        }
+        if (fno.fattrib & AM_DIR) 
+        {                    /* It is a directory */
+            snprintf (fdld[i], 255, "/%s", fno.fname);
+            //sprintf(&path[i], "/%s", fno.fname);
+            //res = scan_files(path);                    /* Enter the directory */
+            //if (res != FR_OK) break;
+            //path[i] = 0;
+        } 
+        else 
+        {                                       /* It is a file. */
+            snprintf (fdld[i], 255, "%s", fno.fname);
+            //printf("%s/%s\n", path, fno.fname);
+        }
+        f_closedir(&dir);
+    }
+    return res;
+}
+
+int sdopen2 (int i)
+{
+    //FDIR fdir;
+    char lbuf[10];
+    FATFS *fs;     /* Ponter to the filesystem object */
+    fs = malloc(sizeof (FATFS));           /* Get work area for the volume */
+    snprintf(lbuf, 10, "%d:/", i);
+    f_mount(fs, lbuf, 0);                    /* Mount the default drive */
+    int ret = scan_files(lbuf); //f_opendir (&fdir, lbuf);
+    //if (ret == FR_OK)
+    //    f_closedir (&fdir);
+    f_mount(0, lbuf, 0);                    /* Mount the default drive */
+    free(fs);
+    //
+    return ret;
+}
+
+int sdopen (int i)
+{
+    FDIR fdir;
+    char lbuf[10];
+    FATFS *fs;     /* Ponter to the filesystem object */
+    fs = malloc(sizeof (FATFS));           /* Get work area for the volume */
+    snprintf(lbuf, 10, "%d:/", i);
+    int ret = f_mount(fs, lbuf, 0);                    /* Mount the default drive */
+    if (ret != FR_OK)
+    {
+        free(fs);
+        return ret;
+    }
+    ret = f_opendir (&fdir, lbuf);
+    if (ret == FR_OK)
+        f_closedir (&fdir);
+    f_mount(0, lbuf, 0);                    /* Mount the default drive */
+    free(fs);
+    //
+    return ret;
+}
+#endif
+//
+
+int fatfs_init()
+{
+    //
+    int k; for (k = 0; k < 8; k++)
+    {
+        //snprintf(lbuf, 10, "%d:/", i);
+        //f_mount(fs, lbuf, 0);                    /* Mount the default drive */
+        fdld[k][0] = '\0';
+        fddr[k] = sdopen(k);
+        //fddr[i] = f_opendir (&fdir, lbuf);
+        //if (fddr[i] == FR_OK)
+        //    f_closedir (&fdir);
+        //f_mount(0, lbuf, 0);                    /* Mount the default drive */
+    }
+    return 0;
+}
+#endif
 // draw one background color in virtual 2D coordinates
 
 void DrawBackground2D(u32 rgba)
@@ -60,8 +244,13 @@ void drawScene()
     int i;
     for (i = 0; i < 8; i++)
     {
-        snprintf(lbuf, 255, "drive %d open result %d ", i, fddr[i]);
+        snprintf(lbuf, 255, "drive %d open result %d for 0x%llx", i, fddr[i], ff_ps3id[i]);
         DrawString(x,y, lbuf);
+        y += 24;
+    }
+    for (i = 0; i < 8; i++)
+    {
+        DrawString(x,y, fdld[i]);
         y += 24;
     }
     #if 0
@@ -134,28 +323,20 @@ void LoadTexture()
 //1st
 int app_init (int dat)
 {
-	tiny3d_Init(1024*1024);
+    fatfs_init();
+
+    tiny3d_Init(1024*1024);
 
 	ioPadInit(7);
 
 	// Load texture
 
     LoadTexture();
-    FDIR fdir;
     int i;
-    char lbuf[10];
-    FATFS *fs;     /* Ponter to the filesystem object */
-    fs = malloc(sizeof (FATFS));           /* Get work area for the volume */
     for (i = 0; i < 8; i++)
     {
-        snprintf(lbuf, 10, "%d:/", i);
-        f_mount(fs, lbuf, 0);                    /* Mount the default drive */
-        fddr[i] = f_opendir (&fdir, lbuf);
-        if (fddr[i] == FR_OK)
-            f_closedir (&fdir);
-        f_mount(0, lbuf, 0);                    /* Mount the default drive */
+        fddr[i] = sdopen(i);
     }
-    free(fs);
     //
     return 1;
 }
