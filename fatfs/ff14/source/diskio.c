@@ -56,7 +56,7 @@ static DSTATUS ps3fatfs_init(int fd)
 
 	dev_sectsize[fd]  = disc_info.sector_size;
 
-	if(dev_fd[fd] >= 0) 
+	if(dev_fd[fd] >= 0)
 		return RES_OK;
 
 	if(sys_storage_open(ff_ps3id[fd], &dev_fd[fd])<0) 
@@ -77,8 +77,10 @@ DSTATUS disk_status (
 	BYTE pdrv		/* Physical drive nmuber to identify the drive */
 )
 {
-	DSTATUS res = STA_NOINIT;
-	return res;
+	if(dev_fd[pdrv] >= 0)
+		return 0;
+	//
+	return STA_NOINIT;
 }
 
 
