@@ -57,8 +57,8 @@ static u64 ff_ps3id[8] = {
 	0x010300000000000AULL, 0x010300000000000BULL, 0x010300000000000CULL, 0x010300000000000DULL,
 	0x010300000000000EULL, 0x010300000000000FULL, 0x010300000000001FULL, 0x0103000000000020ULL 
 	};
-static int dev_fd[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 #if 0
+static int dev_fd[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 #include "storage.h"
 int sdopen (int fd)
 {
@@ -123,36 +123,39 @@ FRESULT scan_files (
 
 
     res = f_opendir(&dir, path);                       /* Open the directory */
-    if (res == FR_OK) 
+    if (res == FR_OK)
     {
-        FRESULT res1 = f_readdir(&dir, &fno);                   /* Read a directory item */
-        if (res1 != FR_OK || fno.fname[0] == 0) 
+        for (i = 0; i < 8; i++)
         {
-            //res1 = disk_status(dir.obj.fs->pdrv);
-            snprintf (fdld[i], 255, "%x !f_readdir %s drive %d ssize %d", res1, path, dir.obj.fs->pdrv, 0/*dir.obj.fs->ssize*/);
-            //
-            f_closedir(&dir);
-            return res;  /* Break on error or end of dir */
-        }
-        if (fno.fattrib & AM_DIR) 
-        {                    /* It is a directory */
-            snprintf (fdld[i], 255, "/%s", fno.fname);
-            //sprintf(&path[i], "/%s", fno.fname);
-            //res = scan_files(path);                    /* Enter the directory */
-            //if (res != FR_OK) break;
-            //path[i] = 0;
-        } 
-        else 
-        {                                       /* It is a file. */
-            snprintf (fdld[i], 255, "%s", fno.fname);
-            //printf("%s/%s\n", path, fno.fname);
+            FRESULT res1 = f_readdir(&dir, &fno);                   /* Read a directory item */
+            if (res1 != FR_OK || fno.fname[0] == 0) 
+            {
+                //res1 = disk_status(dir.obj.fs->pdrv);
+                snprintf (fdld[i], 255, "%x !f_readdir %s drive %d ssize %d", res1, path, dir.obj.fs->pdrv, 0/*dir.obj.fs->ssize*/);
+                //
+                f_closedir(&dir);
+                return res;  /* Break on error or end of dir */
+            }
+            if (fno.fattrib & AM_DIR) 
+            {                    /* It is a directory */
+                snprintf (fdld[i], 255, "/%s", fno.fname);
+                //sprintf(&path[i], "/%s", fno.fname);
+                //res = scan_files(path);                    /* Enter the directory */
+                //if (res != FR_OK) break;
+                //path[i] = 0;
+            } 
+            else 
+            {                                       /* It is a file. */
+                snprintf (fdld[i], 255, "%s", fno.fname);
+                //printf("%s/%s\n", path, fno.fname);
+            }
         }
         f_closedir(&dir);
     }
     return res;
 }
 
-int sdopen2 (int i)
+int sdopen (int i)
 {
     //FDIR fdir;
     char lbuf[10];
@@ -169,7 +172,7 @@ int sdopen2 (int i)
     return ret;
 }
 
-int sdopen (int i)
+int sdopen2 (int i)
 {
     FDIR fdir;
     char lbuf[10];
@@ -183,6 +186,7 @@ int sdopen (int i)
         return ret;
     }
     ret = f_opendir (&fdir, lbuf);
+    snprintf (fdld[i], 255, "%d f_opendir %s drive %d", ret, lbuf, i/*dir.obj.fs->ssize*/);
     if (ret == FR_OK)
         f_closedir (&fdir);
     f_mount(0, lbuf, 0);                    /* Mount the default drive */
@@ -233,25 +237,26 @@ void drawScene()
     char lbuf[256];
 
     tiny3d_Project2D(); // change to 2D context (remember you it works with 848 x 512 as virtual coordinates)
-    DrawBackground2D(0x0040ffff) ; // light blue 
+    //DrawBackground2D(0x0040ffff) ; // light blue 
+    DrawBackground2D(0x000000ff) ; // light blue 
 
-    SetFontSize(12, 24);
+    SetFontSize(8, 8);
     
     x= 0.0; y = 0.0;
 
-    SetCurrentFont(1);
+    SetCurrentFont(2);
     SetFontColor(0xffffffff, 0x0);
     int i;
     for (i = 0; i < 8; i++)
     {
-        snprintf(lbuf, 255, "drive %d open result %d for 0x%llx", i, fddr[i], ff_ps3id[i]);
+        snprintf(lbuf, 255, "drive %d open result %d for 0x%llx", i, fddr[i], (long long unsigned int)ff_ps3id[i]);
         DrawString(x,y, lbuf);
-        y += 24;
+        y += 8;
     }
     for (i = 0; i < 8; i++)
     {
         DrawString(x,y, fdld[i]);
-        y += 24;
+        y += 8;
     }
     #if 0
     SetFontColor(0x00ff00ff, 0x0);
